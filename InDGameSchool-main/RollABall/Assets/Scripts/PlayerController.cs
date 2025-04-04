@@ -1,23 +1,22 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Mirror;
 using UnityEngine.Assertions;
-
-//using Random
+using Mirror;
+using Random = UnityEngine.Random;
 public class PlayerController : NetworkBehaviour
 {
-    //private PlayerInputAction Player
     PlayerInputAction playerInput;
-    private SceneScript sceneScript;
+    SceneScript sceneScript;
 
     public TextMesh playerNameText;
     public GameObject floatingInfo;
+    // public AudioSource fireSource;
 
     Vector3 lastSyncPosition;
     float syncThreshold = 0.01f; // 동기화 임계값
 
-    private Weapon activeWeapon;
-    private float weaponCooldownTime;
+    Weapon activeWeapon;
+    float weaponCooldownTime;
 
     [SyncVar(hook = nameof(OnNameChange))]
     public string playerName;
@@ -32,16 +31,13 @@ public class PlayerController : NetworkBehaviour
             sceneScript.statusText = $"{playerName} say hello {Random.Range(10, 99)}";
     }
 
-    private Material playerMaterialClone;
+    Material playerMaterialClone;
 
     [SerializeField]
-    private Rigidbody rb;
+    Rigidbody rb;
 
-    [SyncVar] private float movementX;
-    [SyncVar] private float movementY;
-
-    // private float movementX;
-    // private float movementY;
+    [SyncVar] float movementX;
+    [SyncVar] float movementY;
 
     const float MOVE_FORCE = 1000f;
     const float WALKING_SPEED = 100f;
@@ -52,7 +48,7 @@ public class PlayerController : NetworkBehaviour
     }
 
     #region Unity Callback
-    private void Awake()
+    void Awake()
     {
 
         //sceneScript = GameObject.FindObjectOfType<SceneScript>();
@@ -74,8 +70,8 @@ public class PlayerController : NetworkBehaviour
         {
             sceneScript.UIAmmo(activeWeapon.weaponAmmo);
         }
-
     }
+
     public void UpdateFloatingInfoPosition(Vector3 pos)
     {
         //Vector3 pos = this.transform.position;
@@ -83,6 +79,7 @@ public class PlayerController : NetworkBehaviour
         floatingInfo.transform.rotation = Quaternion.Euler(0f, 0f, 0f);
 
     }
+
     void Update()
     {
         Vector3 pos = this.transform.position;
@@ -144,8 +141,7 @@ public class PlayerController : NetworkBehaviour
         }
         if (Input.GetButtonDown("Fire1"))
         {
-            if (activeWeapon && activeWeapon.gameObject.activeSelf &&
-            Time.time > weaponCooldownTime && activeWeapon.weaponAmmo > 0)
+            if (activeWeapon && activeWeapon.gameObject.activeSelf && Time.time > weaponCooldownTime && activeWeapon.weaponAmmo > 0)
             {
                 weaponCooldownTime = Time.time + activeWeapon.weaponCooldown;
                 activeWeapon.weaponAmmo -= 1;
@@ -223,10 +219,12 @@ public class PlayerController : NetworkBehaviour
     [ClientRpc]
     void RpcFireWeapon()
     {
+        var weapon = activeWeapon.GetComponent<Weapon>();
+        weapon.MakeFireSound();
         GameObject bullet = Instantiate(
             activeWeapon.weaponBullet,
-            activeWeapon.weaponBulletPos.position,
-            activeWeapon.weaponBulletPos.rotation);
+            activeWeapon.weaponFirePos.position,
+            activeWeapon.weaponFirePos.rotation);
         bullet.GetComponent<Rigidbody>().velocity =
             bullet.transform.forward * activeWeapon.weaponSpeed;
         Destroy(bullet, activeWeapon.weaponLife);
@@ -259,13 +257,11 @@ public class PlayerController : NetworkBehaviour
         movementX = x;
         movementY = y;
     }
-
     #endregion
 
     #region Weapon
 
-    private int selectedWeaponLocal = 1;
-
+    int selectedWeaponLocal = 1;
 
     public GameObject WeaponRoot;
     public GameObject[] weaponArray;
@@ -303,30 +299,18 @@ public class PlayerController : NetworkBehaviour
     {
         WeaponRoot.transform.position = this.transform.position;
         var rot = this.transform.rotation.eulerAngles * Mathf.Rad2Deg;
-        //WeaponRoot.transform.rotation = Quaternion.Euler(0f, rot.y, 0f);
-        // var currAngle = WeaponRoot.transform.rotation.eulerAngles.y;
-        // var nextAngle = Mathf.Atan2(movementX, movementY) * Mathf.Rad2Deg;
-        // var angle = Mathf.LerpAngle(currAngle, nextAngle, 3f * Time.deltaTime);
-        // WeaponRoot.transform.rotation = Quaternion.Euler(0f, angle, 0f);
-
-        /*
-        WeaponRoot.transform.rotation = Quaternion.Slerp(
-            Quaternion.Euler(0f, currAngle, 0f), 
-            Quaternion.Euler(0f, nextangle, 0f), 
-            Time.deltaTime);
-        */
-        //WeaponRoot.transform.rotation = Quaternion.Slerp(this.transform.rotation, Quaternion.Euler(0f, angle * Mathf.Rad2Deg, 0f);
 
         float targetAngle = WeaponRoot.transform.rotation.eulerAngles.y;
 
         if (movementX != 0 || movementY != 0)
         {
-        targetAngle = Mathf.Atan2(movementY, movementX) * Mathf.Rad2Deg;
+            targetAngle = Mathf.Atan2(movementX, movementY) * Mathf.Rad2Deg;
         }
 
-        float currentAngle = WeaponRoot.transform.rotation.eulerAngles.y;
-        float smoothAngle = Mathf.LerpAngle(currentAngle, targetAngle, Time.deltaTime * 15f);
+        float currnetAngle = WeaponRoot.transform.rotation.eulerAngles.y;
+        float smoothAngle = Mathf.LerpAngle(currnetAngle, targetAngle, Time.deltaTime * 15f);
         WeaponRoot.transform.rotation = Quaternion.Euler(0f, smoothAngle, 0f);
-        
     }
+
+
 }
