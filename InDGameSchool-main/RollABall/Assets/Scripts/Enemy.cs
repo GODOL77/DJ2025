@@ -17,6 +17,11 @@ public class Enemy : NetworkBehaviour
             Debug.Log("나 맞았어유");
             StartCoroutine(DestoryAfterDelay());
         }
+
+        if (collision.gameObject.CompareTag("Bullet"))
+        {
+            RpcOnHit();
+        }
     }
 
     [ClientRpc]
@@ -25,6 +30,7 @@ public class Enemy : NetworkBehaviour
         rb.isKinematic = true;
         collider.enabled = false;
         audioSouce.PlayOneShot(audioSouce.clip);
+        StartCoroutine(DestoryAfterDelay());
     }
 
     IEnumerator DestoryAfterDelay()
