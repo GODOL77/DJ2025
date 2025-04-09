@@ -8,7 +8,6 @@ public class EnemySpawner : NetworkBehaviour
 
     float spawnTime = 1f;
     const float SPAWN_TIME_DELTA = 3f;
-    [SyncVar] float playTime = 0f;
 
     void Awake()
     {
