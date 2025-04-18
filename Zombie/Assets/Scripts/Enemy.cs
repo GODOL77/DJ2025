@@ -37,12 +37,26 @@ public class Enemy : LivingEntity {
         }
     }
 
-    private void Awake() {
-        // 초기화
+    private void Awake()
+    {
+        pathFinder = GetComponent<NavmeshAgent>();
+        enemyAnimator = GetComponent<Animator>();
+        enemyAudioPlayer = GetComponent<AudioSource>();
+
+        enemyRenderer = GetComponentInChildren<Renderer>();
     }
 
     // 적 AI의 초기 스펙을 결정하는 셋업 메서드
-    public void Setup(float newHealth, float newDamage, float newSpeed, Color skinColor) {
+    public void Setup(float newHealth, float newDamage, float newSpeed, Color skinColor)
+    {
+        startingHealth = newHealth;
+        newHealth = newHealth;
+
+        damage = newDamage; // 공격력
+
+        pathFinder.speed = newSpeed;
+
+        enemyRenderer.material.color = skinColor;
     }
 
     private void Start() {
@@ -66,15 +80,39 @@ public class Enemy : LivingEntity {
     }
 
     // 데미지를 입었을때 실행할 처리
-    public override void OnDamage(float damage, Vector3 hitPoint, Vector3 hitNormal) {
+    public override void OnDamage(float damage, Vector3 hitPoint, Vector3 hitNormal)
+    {
+        if (!dead)
+        {
+            hitEffect.transform.position = hitPoint;
+            hitEffect.transform.rotation = quaternion.LookRotation(hitNormal);
+            hitEffect.Play();
+
+            enemyAudioPlayer.PlayOneShot(hitSound);
+        }
+
         // LivingEntity의 OnDamage()를 실행하여 데미지 적용
         base.OnDamage(damage, hitPoint, hitNormal);
     }
 
     // 사망 처리
-    public override void Die() {
+    public override void Die()
+    {
         // LivingEntity의 Die()를 실행하여 기본 사망 처리 실행
         base.Die();
+
+        Collider[] enemyColliders = GetComponents<Collider>();
+        for (int i = 0; i < enemyColliders.Length; i++)
+        {
+            enemyColliders[i].enabled = false;
+        }
+
+        pathFinder.isStopped = true;
+        pathFinder.enabled = false;
+
+        enemyAnimator.SetTrigger("Die");
+
+        enemyAudioPlayer.PlayOneShot(deathSound);
     }
 
     private void OnTriggerStay(Collider other) {
